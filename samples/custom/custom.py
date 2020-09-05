@@ -56,7 +56,7 @@ DEFAULT_LOGS_DIR = os.path.join(ROOT_DIR, "logs")
 
 
 class CustomConfig(Config):
-    """Configuration for training on the toy  dataset.
+    """Configuration for training on the custom dataset.
     Derives from the base Config class and overrides some values.
     """
     # Give the configuration a recognizable name
@@ -152,7 +152,8 @@ class CustomDataset(utils.Dataset):
                 image_id=a['filename'],  # use file name as a unique image id
                 path=image_path,
                 width=width, height=height,
-                polygons=polygons)
+                polygons=polygons,
+                num_ids=num_ids)
 
     def load_mask(self, image_id):
         """Generate instance masks for an image.
@@ -165,6 +166,8 @@ class CustomDataset(utils.Dataset):
         image_info = self.image_info[image_id]
         if image_info["source"] != "custom":
             return super(self.__class__, self).load_mask(image_id)
+        num_ids = image_info['num_ids']	
+        #print("Here is the numID",num_ids)
 
         # Convert polygons to a bitmap mask of shape
         # [height, width, instance_count]
@@ -178,7 +181,8 @@ class CustomDataset(utils.Dataset):
 
         # Return mask, and array of class IDs of each instance. Since we have
         # one class ID only, we return an array of 1s
-        return mask.astype(np.bool), np.ones([mask.shape[-1]], dtype=np.int32)
+        num_ids = np.array(num_ids, dtype=np.int32)	
+        return mask, num_ids#.astype(np.bool), np.ones([mask.shape[-1]], dtype=np.int32), 
 
     def image_reference(self, image_id):
         """Return the path of the image."""
@@ -192,7 +196,7 @@ class CustomDataset(utils.Dataset):
 def train(model):
     """Train the model."""
     # Training dataset.
-    dataset_train = CutomDataset()
+    dataset_train = CustomDataset()
     dataset_train.load_custom(args.dataset, "train")
     dataset_train.prepare()
 
@@ -347,6 +351,10 @@ if __name__ == '__main__':
                                   model_dir=args.logs)
 
     # Select weights file to load
+    if args.weights.lower() == "new":	
+        print("weight path entered")	
+        print(NEW_WEIGHTS_PATH)	
+        weights_path = NEW_WEIGHTS_PATH
     if args.weights.lower() == "coco":
         weights_path = COCO_WEIGHTS_PATH
         # Download weights file
